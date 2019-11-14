@@ -107,10 +107,6 @@ void print_dualstack();
 
 int main(int argc, char* const* argv)
 {
-    pipe_in = !isatty(fileno(stdin)) || std::getenv("DEBUG_SET_PIPE_IN");
-    pipe_out = !isatty(fileno(stdout)) || std::getenv("DEBUG_SET_PIPE_OUT");
-    if (pipe_in || pipe_out) btc_logf = btc_logf_dummy;
-
     cliargs ca;
     ca.add_option("help", 'h', no_arg);
     ca.add_option("quiet", 'q', no_arg);
@@ -265,16 +261,6 @@ int main(int argc, char* const* argv)
         }
     }
 
-    if (pipe_in || pipe_out) {
-        if (!ContinueScript(*env)) {
-            fprintf(stderr, "error: %s\n", ScriptErrorString(*env->serror));
-            print_dualstack();
-            return 1;
-        }
-
-        print_stack(env->stack, true);
-        return 0;
-    } else {
         kerl_set_history_file(".btcdeb_history");
         kerl_set_repeat_on_empty(true);
         kerl_set_enable_sensitivity();
@@ -296,13 +282,12 @@ int main(int argc, char* const* argv)
             printf("%s\n", script_lines[env->curr_op_seq]);
         }
         kerl_run("btcdeb> ");
-    }
 }
 
 #define fail(msg...) do { fprintf(stderr, msg); return 0; } while (0)
 
 int fn_step(const char* arg) {
-    if (env->done) fail("at end of script\n");
+    if (env->done) fail("end_of_script\n");
     if (!instance.step()) fail("error: %s\n", instance.error_string().c_str());
     print_dualstack();
     if (env->curr_op_seq < count) {
@@ -397,39 +382,22 @@ void print_dualstack() {
         if (s.length() > rmax) rmax = s.length();
         r.push_back(s);
     }
-    if (glmax < lmax) glmax = lmax;
-    if (grmax < rmax) grmax = rmax;
-    lmax = glmax; rmax = grmax;
-    int lcap = //66, rcap = 66; // 
-    lmax > 66 ? 66 : lmax, rcap = rmax > 66 ? 66 : rmax;
-    char lfmt[10], rfmt[10];
-    sprintf(lfmt, "%%-%ds", lcap + 1);
-    sprintf(rfmt, "%%%ds", rcap);
-    printf(lfmt, "script");
-    printf("| ");
-    printf(rfmt, "stack ");
-    printf("\n");
-    for (int i = 0; i < lcap; i++) printf("-");
-    printf("-+-");
-    for (int i = 0; i < rcap; i++) printf("-");
-    printf("\n");
     int li = 0, ri = 0;
-    while (li < l.size() || ri < r.size()) {
+    while (li < l.size()) {
         if (li < l.size()) {
             auto s = l[li++];
-            if (s.length() > lcap) s = s.substr(0, lcap-3) + "...";
-            printf(lfmt, s.c_str());
-        } else {
-            printf(lfmt, "");
+            btc_logf("script: %s\n", s.c_str());
         }
-        printf("| ");
+    }
+
+    while (ri < r.size()) {
         if (ri < r.size()) {
             auto s = r[ri++];
-            if (s.length() > rcap) s = s.substr(0, rcap-3) + "...";
-            printf(rfmt, s.c_str());
+            btc_logf("stack: %s\n", s.c_str());
         }
-        printf("\n");
     }
+
+    btc_logf("end_of_stack\n");
 }
 
 int print_stack(std::vector<valtype>& stack, bool raw) {
