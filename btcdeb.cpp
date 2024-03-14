@@ -110,8 +110,8 @@ bool get_debug_flag(const std::string& name, const std::set<std::string>& debug_
 
 int main(int argc, char* const* argv)
 {
-    pipe_in = !isatty(fileno(stdin)) || std::getenv("DEBUG_SET_PIPE_IN");
-    pipe_out = !isatty(fileno(stdout)) || std::getenv("DEBUG_SET_PIPE_OUT");
+    pipe_in = false;
+    pipe_out = false;
     if (pipe_in || pipe_out) btc_logf = btc_logf_dummy;
 
     cliargs ca;
@@ -341,38 +341,38 @@ int main(int argc, char* const* argv)
         ); else if (!quiet) btc_logf("note: there is a for-clarity preamble (use --verbose for details)\n");
     }
 
-    if (pipe_in || pipe_out) {
-        if (!ContinueScript(*env)) {
-            fprintf(stderr, "error: %s\n", ScriptErrorString(*env->serror).c_str());
-            print_dualstack();
-            return 1;
-        }
+    // if (pipe_in || pipe_out) {
+    //     if (!ContinueScript(*env)) {
+    //         fprintf(stderr, "error: %s\n", ScriptErrorString(*env->serror).c_str());
+    //         print_dualstack();
+    //         return 1;
+    //     }
 
-        print_stack(env->stack, true);
-        return 0;
-    } else {
-        kerl_set_history_file(".btcdeb_history");
-        kerl_set_repeat_on_empty(true);
-        kerl_set_enable_sensitivity();
-        kerl_set_comment_char('#');
-        kerl_register("step", fn_step, "Execute one instruction and iterate in the script.");
-        kerl_register("rewind", fn_rewind, "Go back in time one instruction.");
-        kerl_register("stack", fn_stack, "Print stack content.");
-        kerl_register("altstack", fn_altstack, "Print altstack content.");
-        kerl_register("vfexec", fn_vfexec, "Print vfexec content.");
-        kerl_register("exec", fn_exec, "Execute command.");
-        kerl_register("tf", fn_tf, "Transform a value using a given function.");
-        kerl_set_completor("exec", compl_exec, true);
-        kerl_set_completor("tf", compl_tf, false);
-        kerl_register("print", fn_print, "Print script.");
-        kerl_register_help("help");
-        if (!quiet) btc_logf("%d op script loaded. type `help` for usage information\n", count);
-        print_dualstack();
-        if (env->curr_op_seq < count) {
-            printf("%s\n", script_lines[env->curr_op_seq]);
-        }
-        kerl_run("btcdeb> ");
+    //     print_stack(env->stack, true);
+    //     return 0;
+    // } else {
+    kerl_set_history_file(".btcdeb_history");
+    kerl_set_repeat_on_empty(true);
+    kerl_set_enable_sensitivity();
+    kerl_set_comment_char('#');
+    kerl_register("step", fn_step, "Execute one instruction and iterate in the script.");
+    kerl_register("rewind", fn_rewind, "Go back in time one instruction.");
+    kerl_register("stack", fn_stack, "Print stack content.");
+    kerl_register("altstack", fn_altstack, "Print altstack content.");
+    kerl_register("vfexec", fn_vfexec, "Print vfexec content.");
+    kerl_register("exec", fn_exec, "Execute command.");
+    kerl_register("tf", fn_tf, "Transform a value using a given function.");
+    kerl_set_completor("exec", compl_exec, true);
+    kerl_set_completor("tf", compl_tf, false);
+    kerl_register("print", fn_print, "Print script.");
+    kerl_register_help("help");
+    if (!quiet) btc_logf("%d op script loaded. type `help` for usage information\n", count);
+    print_dualstack();
+    if (env->curr_op_seq < count) {
+        printf("%s\n", script_lines[env->curr_op_seq]);
     }
+    kerl_run("btcdeb> ");
+    // }
 }
 
 static const char* opnames[] = {
